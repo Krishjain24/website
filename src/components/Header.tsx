@@ -3,13 +3,14 @@ import React, { useState } from 'react';
 interface HeaderProps {
   onOpenWaitlist: () => void;
   onOpenAdmin: () => void;
+  onOpenPlatformDemo: () => void;
   onOpenQuickStart?: () => void;
   isAdminView?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenWaitlist,
-  onOpenAdmin,
+  onOpenPlatformDemo,
   onOpenQuickStart,
   isAdminView,
 }) => {
@@ -54,9 +55,25 @@ export const Header: React.FC<HeaderProps> = ({
         <nav className={`main-navigation ${isOpen ? 'is-open' : ''}`} aria-label="Main navigation">
           {!isAdminView ? (
             <>
-              <a href="#platform" onClick={() => setIsOpen(false)}>
-                Platform
-              </a>
+              <button
+                type="button"
+                className="nav-link"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenPlatformDemo();
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  color: 'inherit',
+                  padding: 0,
+                  fontSize: '13px',
+                }}
+              >
+                Platform Sandbox ↗
+              </button>
               <a href="#workflow" onClick={() => setIsOpen(false)}>
                 How it works
               </a>
@@ -76,18 +93,6 @@ export const Header: React.FC<HeaderProps> = ({
                   Start on Win / Mac ⚡
                 </button>
               )}
-              <a
-                href="/admin"
-                className="nav-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setIsOpen(false);
-                  onOpenAdmin();
-                }}
-                style={{ color: 'var(--violet)', fontWeight: 600 }}
-              >
-                Mission Control ◈
-              </a>
               <button
                 type="button"
                 className="nav-cta btn-open-waitlist"
@@ -101,19 +106,6 @@ export const Header: React.FC<HeaderProps> = ({
             </>
           ) : (
             <>
-              {onOpenQuickStart && (
-                <button
-                  type="button"
-                  className="nav-link"
-                  onClick={() => {
-                    setIsOpen(false);
-                    onOpenQuickStart();
-                  }}
-                  style={{ color: '#059669', fontWeight: 600 }}
-                >
-                  1-Click Launchers ⚡
-                </button>
-              )}
               <a
                 href="/"
                 className="nav-link"

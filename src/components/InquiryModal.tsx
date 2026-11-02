@@ -28,6 +28,14 @@ export const InquiryModal: React.FC<InquiryModalProps> = ({
     e.preventDefault();
     if (!name.trim() || !email.trim() || !message.trim() || isSubmitting) return;
 
+    if (!store.validateEmail(email)) {
+      setStatus({
+        type: 'error',
+        message: 'Please enter a valid work email address (e.g. name@company.com).',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     setStatus(null);
 

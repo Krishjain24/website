@@ -16,36 +16,53 @@ export const WaitlistModal: React.FC<WaitlistModalProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [builderRole, setBuilderRole] = useState<'frontend' | 'fullstack' | 'teams' | 'other'>('fullstack');
+  const [builderRole, setBuilderRole] = useState<'frontend' | 'backend' | 'fullstack' | 'teams' | 'other'>('fullstack');
   const [company, setCompany] = useState('');
+  const [useCase, setUseCase] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string; position?: number } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [status, setStatus] = useState<{
+    type: 'success' | 'error';
+    message: string;
+    position?: number;
+    emailDispatched?: string;
+  } | null>(null);
 
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || isSubmitting) return;
-
-    setIsSubmitting(true);
+    setValidationError(null);
     setStatus(null);
+
+    const cleanEmail = email.toLowerCase().trim();
+    if (!store.validateEmail(cleanEmail)) {
+      setValidationError('Please enter a valid work email address with a domain (e.g. name@company.com).');
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     try {
       const entry = await store.joinWaitlist({
-        email,
+        email: cleanEmail,
         full_name: fullName.trim() || null,
         builder_role: builderRole,
         company: company.trim() || null,
+        use_case: useCase.trim() || null,
       });
 
       setStatus({
         type: 'success',
-        message: `You're on the list! Position #${entry.queue_position || '1'} reserved for early access. Record stored in SQLite (orbit.db).`,
+        message: `You're in! Queue position #${entry.queue_position || '1'} reserved.`,
         position: entry.queue_position,
+        emailDispatched: cleanEmail,
       });
       setEmail('');
       setFullName('');
       setCompany('');
+      setUseCase('');
       if (onSuccess) onSuccess();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
@@ -86,10 +103,18 @@ export const WaitlistModal: React.FC<WaitlistModalProps> = ({
               type="email"
               id="wl-email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (validationError) setValidationError(null);
+              }}
+              placeholder="name@company.com"
               required
             />
+            {validationError && (
+              <span style={{ color: '#ef4444', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                {validationError}
+              </span>
+            )}
           </div>
           <div className="form-field">
             <label htmlFor="wl-name">Full Name</label>
@@ -106,9 +131,10 @@ export const WaitlistModal: React.FC<WaitlistModalProps> = ({
             <select
               id="wl-role"
               value={builderRole}
-              onChange={(e) => setBuilderRole(e.target.value as 'frontend' | 'fullstack' | 'teams' | 'other')}
+              onChange={(e) => setBuilderRole(e.target.value as 'frontend' | 'backend' | 'fullstack' | 'teams' | 'other')}
             >
               <option value="frontend">Frontend Developer</option>
+              <option value="backend">Backend Architect / Engineer</option>
               <option value="fullstack">Full Stack Builder</option>
               <option value="teams">Engineering / Product Team</option>
               <option value="other">Other</option>
@@ -121,15 +147,35 @@ export const WaitlistModal: React.FC<WaitlistModalProps> = ({
               id="wl-company"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              placeholder="Acme Corp"
+              placeholder="Acme Corp or Independent"
+            />
+          </div>
+          <div className="form-field">
+            <label htmlFor="wl-use-case">Primary Project or Goal</label>
+            <input
+              type="text"
+              id="wl-use-case"
+              value={useCase}
+              onChange={(e) => setUseCase(e.target.value)}
+              placeholder="Building next-gen storefronts with AI agents..."
             />
           </div>
           <button type="submit" className="form-submit-btn" disabled={isSubmitting}>
-            {isSubmitting ? 'Reserving...' : 'Reserve Your Spot'} <span>↗</span>
+            {isSubmitting ? 'Reserving spot...' : 'Reserve Your Spot'} <span>↗</span>
           </button>
           {status && (
-            <div className={`form-status ${status.type}`}>
-              <p style={{ margin: 0 }}>{status.message}</p>
+            <div className={`form-status ${status.type}`} style={{ textAlign: 'left', padding: '14px' }}>
+              <p style={{ margin: '0 0 6px', fontWeight: 600, fontSize: '14px' }}>{status.message}</p>
+              {status.type === 'success' && (
+                <div style={{ background: 'rgba(255,255,255,0.7)', borderRadius: '6px', padding: '8px 10px', fontSize: '12px', marginTop: '8px' }}>
+                  <p style={{ margin: '0 0 4px', color: '#15803d', fontWeight: 600 }}>
+                    📬 Automated Gmail Confirmation Dispatched:
+                  </p>
+                  <p style={{ margin: 0, color: '#334155' }}>
+                    Confirmation email sent to <strong>{status.emailDispatched}</strong> from <code>team@orbit.dev</code>. Once our administrators review your application, you will receive an acceptance token or cohort update directly.
+                  </p>
+                </div>
+              )}
               {status.type === 'success' && onOpenAdmin && (
                 <button
                   type="button"
@@ -138,18 +184,18 @@ export const WaitlistModal: React.FC<WaitlistModalProps> = ({
                     onOpenAdmin();
                   }}
                   style={{
-                    marginTop: '8px',
+                    marginTop: '10px',
                     background: 'var(--ink)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
-                    padding: '6px 12px',
+                    padding: '7px 14px',
                     fontSize: '12px',
                     cursor: 'pointer',
                     fontWeight: 600,
                   }}
                 >
-                  View entry in Mission Control (Admin) ◈
+                  View entry in Admin Dashboard ◈
                 </button>
               )}
             </div>
